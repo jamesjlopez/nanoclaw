@@ -480,7 +480,27 @@ function handleEvent(event: ProviderEvent, _routing: RoutingContext): void {
     case 'progress':
       log(`Progress: ${event.message}`);
       break;
+    case 'provider_notice':
+      log(`Provider notice: ${event.message}`);
+      sendProviderNotice(event.message, _routing);
+      break;
   }
+}
+
+function sendProviderNotice(message: string, routing: RoutingContext): void {
+  if (!routing.platformId || !routing.channelType) {
+    log(`Provider notice could not be delivered without routing: ${message}`);
+    return;
+  }
+  writeMessageOut({
+    id: generateId(),
+    in_reply_to: routing.inReplyTo,
+    kind: 'chat',
+    platform_id: routing.platformId,
+    channel_type: routing.channelType,
+    thread_id: routing.threadId,
+    content: JSON.stringify({ text: message }),
+  });
 }
 
 /**

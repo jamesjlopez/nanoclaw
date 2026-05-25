@@ -106,6 +106,14 @@ export function composeGroupClaudeMd(group: AgentGroup): void {
     }
   }
 
+  const repoAwarenessFile = path.join(groupDir, 'repo-awareness.md');
+  if (fs.existsSync(repoAwarenessFile)) {
+    desired.set('repo-awareness.md', {
+      type: 'symlink',
+      content: '/workspace/agent/repo-awareness.md',
+    });
+  }
+
   // Reconcile: drop stale, write desired.
   for (const existing of fs.readdirSync(fragmentsDir)) {
     if (!desired.has(existing)) {

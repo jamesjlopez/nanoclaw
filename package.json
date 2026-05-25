@@ -21,6 +21,7 @@
     "setup:auto": "tsx setup/auto.ts",
     "ncl": "tsx src/cli/client.ts",
     "chat": "tsx scripts/chat.ts",
+    "index-repos": "tsx scripts/index-repos.ts",
     "auth": "tsx src/whatsapp-auth.ts",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
