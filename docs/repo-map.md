@@ -157,6 +157,9 @@ For URL-to-content enrichment, prefer a host-side module that runs before
 `messages_in` row. Keep raw media acquisition, transcription/OCR, extraction,
 and formatting separate so the expensive parts can be cached and retried.
 
+For the Instagram/Reels URL-to-transcript plan, see
+[`docs/instagram-ingestion.md`](instagram-ingestion.md).
+
 Recommended shape:
 
 1. Detect candidate URLs in `content.text` and `chat-sdk` links.

@@ -175,10 +175,11 @@ function formatSingleChat(msg: MessageInRow): string {
   const replyAttr = content.replyTo?.id ? ` reply_to="${escapeXml(String(content.replyTo.id))}"` : '';
   const replyPrefix = formatReplyContext(content.replyTo);
   const attachmentsSuffix = formatAttachments(content.attachments);
+  const linkIngestionsSuffix = formatLinkIngestions(content.linkIngestions);
 
   const fromAttr = originAttr(msg);
 
-  return `<message${idAttr}${fromAttr} sender="${escapeXml(sender)}" time="${escapeXml(time)}"${replyAttr}>${replyPrefix}${escapeXml(text)}${attachmentsSuffix}</message>`;
+  return `<message${idAttr}${fromAttr} sender="${escapeXml(sender)}" time="${escapeXml(time)}"${replyAttr}>${replyPrefix}${escapeXml(text)}${attachmentsSuffix}${linkIngestionsSuffix}</message>`;
 }
 
 /**
@@ -251,6 +252,44 @@ function formatAttachments(attachments: any[] | undefined): string {
       return `[${type}: ${escapeXml(name)} — saved to ${escapeXml(localPath)}]`;
     }
     return url ? `[${type}: ${escapeXml(name)} (${escapeXml(url)})]` : `[${type}: ${escapeXml(name)}]`;
+  });
+  return '\n' + parts.join('\n');
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function formatLinkIngestions(linkIngestions: any[] | undefined): string {
+  if (!Array.isArray(linkIngestions) || linkIngestions.length === 0) return '';
+  const parts = linkIngestions.map((item) => {
+    const attrs = [
+      ['source', item.source],
+      ['url', item.url],
+      ['canonical_url', item.canonicalUrl],
+      ['status', item.status],
+      ['kind', item.kind],
+    ]
+      .filter(([, value]) => typeof value === 'string' && value.length > 0)
+      .map(([name, value]) => `${name}="${escapeXml(String(value))}"`)
+      .join(' ');
+
+    const bodyParts: string[] = [];
+    if (typeof item.caption === 'string' && item.caption) {
+      bodyParts.push(`<caption>${escapeXml(item.caption)}</caption>`);
+    }
+    if (typeof item.transcript === 'string' && item.transcript) {
+      bodyParts.push(`<transcript>${escapeXml(item.transcript)}</transcript>`);
+    }
+    if (typeof item.ocr === 'string' && item.ocr) {
+      bodyParts.push(`<ocr>${escapeXml(item.ocr)}</ocr>`);
+    }
+    if (Array.isArray(item.toolMentions) && item.toolMentions.length > 0) {
+      bodyParts.push(`<tool_mentions>${escapeXml(JSON.stringify(item.toolMentions))}</tool_mentions>`);
+    }
+    if (typeof item.error === 'string' && item.error) {
+      bodyParts.push(`<error>${escapeXml(item.error)}</error>`);
+    }
+
+    const attrText = attrs ? ` ${attrs}` : '';
+    return `<link_ingestion${attrText}>${bodyParts.join('\n')}</link_ingestion>`;
   });
   return '\n' + parts.join('\n');
 }

@@ -24,12 +24,7 @@ afterEach(() => {
   closeSessionDb();
 });
 
-function insertMessage(
-  id: string,
-  kind: string,
-  content: object,
-  opts?: { timestamp?: string },
-) {
+function insertMessage(id: string, kind: string, content: object, opts?: { timestamp?: string }) {
   const timestamp = opts?.timestamp ?? new Date().toISOString();
   getInboundDb()
     .prepare(
@@ -165,15 +160,42 @@ describe('XML escaping', () => {
   });
 });
 
+describe('link ingestions', () => {
+  it('renders derived link artifacts inside the message', () => {
+    insertMessage('m1', 'chat', {
+      sender: 'Alice',
+      text: 'check this reel',
+      linkIngestions: [
+        {
+          source: 'instagram',
+          url: 'https://www.instagram.com/reel/abc/',
+          canonicalUrl: 'https://www.instagram.com/reel/abc/',
+          status: 'ready',
+          kind: 'video',
+          caption: 'A workflow demo',
+          transcript: 'I use Raycast and CleanShot for this.',
+          ocr: 'Raycast',
+          toolMentions: [{ name: 'Raycast', evidence: 'I use Raycast', confidence: 0.9 }],
+        },
+      ],
+    });
+    const result = formatMessages(getPendingMessages());
+    expect(result).toContain('<link_ingestion source="instagram"');
+    expect(result).toContain('canonical_url="https://www.instagram.com/reel/abc/"');
+    expect(result).toContain('<caption>A workflow demo</caption>');
+    expect(result).toContain('<transcript>I use Raycast and CleanShot for this.</transcript>');
+    expect(result).toContain('<ocr>Raycast</ocr>');
+    expect(result).toContain('&quot;name&quot;:&quot;Raycast&quot;');
+  });
+});
+
 describe('stripInternalTags', () => {
   it('strips single-line internal tags and trims', () => {
     expect(stripInternalTags('hello <internal>secret</internal> world')).toBe('hello  world');
   });
 
   it('strips multi-line internal tags', () => {
-    expect(stripInternalTags('hello <internal>\nsecret\nstuff\n</internal> world')).toBe(
-      'hello  world',
-    );
+    expect(stripInternalTags('hello <internal>\nsecret\nstuff\n</internal> world')).toBe('hello  world');
   });
 
   it('strips multiple internal tag blocks', () => {
@@ -189,8 +211,6 @@ describe('stripInternalTags', () => {
   });
 
   it('preserves content that surrounds internal tags', () => {
-    expect(stripInternalTags('<internal>thinking</internal>The answer is 42')).toBe(
-      'The answer is 42',
-    );
+    expect(stripInternalTags('<internal>thinking</internal>The answer is 42')).toBe('The answer is 42');
   });
 });

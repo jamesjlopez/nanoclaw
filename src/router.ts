@@ -123,6 +123,40 @@ export function setMessageInterceptor(fn: MessageInterceptorFn): void {
 }
 
 /**
+ * Inbound enrichment hook. Runs after routing/access/command checks have
+ * accepted a message for a concrete agent session, but before the host writes
+ * the message into inbound.db. Modules can append derived content such as
+ * URL transcripts or OCR without changing routing decisions.
+ */
+export type InboundEnricherFn = (event: InboundEvent) => InboundEvent | Promise<InboundEvent>;
+
+const inboundEnrichers: InboundEnricherFn[] = [];
+
+export function registerInboundEnricher(fn: InboundEnricherFn): void {
+  inboundEnrichers.push(fn);
+}
+
+export function _clearInboundEnrichersForTest(): void {
+  inboundEnrichers.length = 0;
+}
+
+export async function applyInboundEnrichers(event: InboundEvent): Promise<InboundEvent> {
+  let enriched = event;
+  for (const fn of inboundEnrichers) {
+    try {
+      enriched = await fn(enriched);
+    } catch (err) {
+      log.warn('Inbound enricher failed; using previous content', {
+        channelType: enriched.channelType,
+        messageId: enriched.message.id,
+        err,
+      });
+    }
+  }
+  return enriched;
+}
+
+/**
  * Channel-registration hook. Runs when the router sees a mention/DM on a
  * messaging group that has no wirings AND hasn't been denied. The hook is
  * expected to escalate to an owner (card, etc.) and arrange for future
@@ -447,14 +481,16 @@ async function deliverToAgent(
     }
   }
 
+  const enrichedEvent = await applyInboundEnrichers(event);
+
   writeSessionMessage(session.agent_group_id, session.id, {
-    id: messageIdForAgent(event.message.id, agent.agent_group_id),
-    kind: event.message.kind,
-    timestamp: event.message.timestamp,
+    id: messageIdForAgent(enrichedEvent.message.id, agent.agent_group_id),
+    kind: enrichedEvent.message.kind,
+    timestamp: enrichedEvent.message.timestamp,
     platformId: deliveryAddr.platformId,
     channelType: deliveryAddr.channelType,
     threadId: deliveryAddr.threadId,
-    content: event.message.content,
+    content: enrichedEvent.message.content,
     trigger: wake ? 1 : 0,
   });
 
