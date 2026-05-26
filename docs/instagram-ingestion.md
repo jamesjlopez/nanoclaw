@@ -106,3 +106,27 @@ Recommended default for a personal NanoClaw fork:
 7. Audio extraction + transcription.
 8. OCR/image fallback.
 9. Tool-mention extraction.
+
+## Current Runtime Dependencies
+
+The host-side Instagram module uses external binaries and the OpenAI audio
+transcription API:
+
+- `yt-dlp` on PATH, or `INSTAGRAM_YTDLP_BIN=/path/to/yt-dlp`
+- `ffmpeg` on PATH, or `INSTAGRAM_FFMPEG_BIN=/path/to/ffmpeg`
+- `OPENAI_API_KEY` for `gpt-4o-mini-transcribe`
+
+Optional resolver settings:
+
+- `OPENAI_TRANSCRIBE_MODEL`, default `gpt-4o-mini-transcribe`
+- `INSTAGRAM_YTDLP_COOKIES_FROM_BROWSER`, e.g. `chrome` or `safari`
+- `INSTAGRAM_COOKIES_FILE`, passed to `yt-dlp --cookies`
+- `INSTAGRAM_INGESTION_MAX_SECONDS`, default `180`
+- `INSTAGRAM_INGESTION_MAX_BYTES`, default `78643200`
+- `INSTAGRAM_INGESTION_TIMEOUT_MS`, default `90000`
+- `INSTAGRAM_INGESTION_FAILURE_CACHE_MS`, default `3600000`
+
+Missing dependencies do not break routing. The enricher appends a failed
+`linkIngestions` entry with an error string. Successful results are cached
+indefinitely; failed results are cached briefly so installing a missing
+dependency later allows retry after the failure cache expires.
